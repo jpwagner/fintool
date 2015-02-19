@@ -1,0 +1,9 @@
+# local files
+.DS_Store
+# binary files
+*.pyc
+*.pickle
+*.db
+*celerybeat-schedule
+ve/*
+
