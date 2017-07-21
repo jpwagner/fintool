@@ -1,3 +1,7 @@
+UPDATE: Yahoo has discontinued the data availability used in this repo.  Will update once I find a better source.
+
+=====
+
 Step 1:
 $ python dependencies/get-pip.py
 
