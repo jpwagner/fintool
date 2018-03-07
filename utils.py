@@ -1,3 +1,4 @@
+import json
 import csv
 import urllib
 from datetime import datetime
@@ -16,7 +17,8 @@ def load_tickers():
 	'''
 	session = models.create_db_session()
 
-	ticker_file = csv.reader(open('data/ticker_list.csv', 'rU'))
+	ticker_file = csv.reader(open('data/sp500_tickers.csv', 'rU'))
+	# ticker_file = csv.reader(open('data/test_list.csv', 'rU'))
 	for row in ticker_file:
 		symbol = row[0]
 		results = session.query(models.Ticker).filter(models.Ticker.symbol==symbol)
@@ -53,27 +55,49 @@ def fetch_ticker_data(ticker):
 	Fetches all available yahoo historical data for a ticker symbol
 	'''
 
+	url = 'https://api.iextrading.com/1.0/stock/{}/chart/5y'.format(ticker.symbol)
+
 	print "Loading..." + ticker.symbol
 
-	start_date = settings.HISTORICAL_START_DATE
-	end_date = datetime.now()
+	# start_date = settings.HISTORICAL_START_DATE
+	# end_date = datetime.now()
 
-	params = {
-			's': ticker.symbol,
-			'a': start_date.month,
-			'b': start_date.day,
-			'c': start_date.year,
-			'd': end_date.month,
-			'e': end_date.day,
-			'f': end_date.year,
-			'ignore': '.csv'
-		}
+	# params = {
+	# 		's': ticker.symbol,
+	# 		'a': start_date.month,
+	# 		'b': start_date.day,
+	# 		'c': start_date.year,
+	# 		'd': end_date.month,
+	# 		'e': end_date.day,
+	# 		'f': end_date.year,
+	# 		'ignore': '.csv'
+	# 	}
 
-	url = 'http://ichart.finance.yahoo.com/table.csv?' + urllib.urlencode(params)
+	# url = 'http://ichart.finance.yahoo.com/table.csv?' + urllib.urlencode(params)
 
-	data = read_csv(urllib.urlopen(url), index_col=0)\
-			.reindex([d.strftime('%Y-%m-%d') for d in pd.date_range(start_date,end_date)])\
-			.fillna(method='pad')
+	# data = read_csv(urllib.urlopen(url), index_col=0)\
+	# 		.reindex([d.strftime('%Y-%m-%d') for d in pd.date_range(start_date,end_date)])\
+	# 		.fillna(method='pad')
+
+	try:
+		response = json.loads(urllib.urlopen(url).read())
+	except:
+		response = []
+
+	# {
+	# "date": "2013-03-07",
+	# "open": 60.6428,
+	# "high": 61.7157,
+	# "low": 60.1514,
+	# "close": 61.5117,
+	# "volume": 116992841,
+	# "unadjustedVolume": 16713263,
+	# "change": 0.702856,
+	# "changePercent": 1.156,
+	# "vwap": 60.9832,
+	# "label": "Mar 7, 13",
+	# "changeOverTime": 0
+	# }
 
 	session = models.create_db_session()
 
@@ -81,10 +105,10 @@ def fetch_ticker_data(ticker):
 	for result in results:
 		session.delete(result)
 
-	for date in data.index:
-		h = models.HistoricalData(ticker_id=ticker.id, date=datetime.strptime(date,'%Y-%m-%d'),
-			open=data['Open'][date], high=data['High'][date], low=data['Low'][date],
-			close=data['Close'][date], volume=data['Volume'][date], adj_close=data['Adj Close'][date])
+	for data in response:
+		h = models.HistoricalData(ticker_id=ticker.id, date=datetime.strptime(data['date'],'%Y-%m-%d'),
+			open=data['open'], high=data['high'], low=data['low'],
+			close=data['close'], volume=data['volume'], adj_close=None)
 
 		session.add(h)
 	session.commit()
@@ -99,6 +123,7 @@ def fetch_special_data(ticker):
 		list of format symbols: http://www.gummy-stuff.org/Yahoo-data.htm
 		only gets today's data.
 	'''
+	return False
 
 	print "Loading Fundamentals..." + ticker.symbol
 
